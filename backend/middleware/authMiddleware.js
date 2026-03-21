@@ -10,7 +10,7 @@ const verifyToken = (req, res, next) => {
         return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để thực hiện chức năng này!' });
     }
 
-    try {
+    try {   
         // 3. Giải mã token bằng Secret Key
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
