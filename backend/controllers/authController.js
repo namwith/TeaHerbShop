@@ -1,81 +1,45 @@
-const bcrypt = require("bcryptjs");
+// backend/controllers/authController.js
 const jwt = require("jsonwebtoken");
-const { pool } = require("../config/db");
+const authService = require("../services/authService");
 
-// 1. ĐĂNG KÝ
 const register = async (req, res) => {
   try {
     const { username, password, fullName, phone, address } = req.body;
 
-    const [existingUsers] = await pool.query(
-      "SELECT * FROM Users WHERE Username = ?",
-      [username],
+    // Gọi Service
+    await authService.registerUser(
+      username,
+      password,
+      fullName,
+      phone,
+      address,
     );
 
-    if (existingUsers.length > 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Tên đăng nhập đã tồn tại!" });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "🎉 Đăng ký thành công! Hãy đăng nhập.",
+      });
+  } catch (error) {
+    // SỬ DỤNG .includes() ĐỂ BẮT LỖI CHÍNH XÁC VÀ AN TOÀN HƠN
+    if (error.message && error.message.includes("Tên đăng nhập đã tồn tại")) {
+      return res.status(400).json({ success: false, message: error.message });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    await pool.query(
-      `INSERT INTO Users (Username, Password, Role, FullName, Phone, Address) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        username,
-        hashedPassword,
-        "user",
-        fullName || null,
-        phone || null,
-        address || null,
-      ],
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "🎉 Đăng ký thành công! Hãy đăng nhập.",
-    });
-  } catch (error) {
     console.error("Lỗi đăng ký:", error);
     res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };
 
-// 2. ĐĂNG NHẬP
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const [users] = await pool.query("SELECT * FROM Users WHERE Username = ?", [
-      username,
-    ]);
+    // Gọi Service
+    const user = await authService.loginUser(username, password);
 
-    if (users.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Tài khoản không tồn tại!" });
-    }
-
-    const user = users[0];
-
-    if (user.Status === "banned") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Tài khoản của bạn đã bị khóa!" });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.Password);
-    if (!validPassword) {
-      if (password !== user.Password) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Sai mật khẩu!" });
-      }
-    }
-
+    // Ký JWT
     const token = jwt.sign(
       { id: user.UserID, username: user.Username, role: user.Role },
       process.env.JWT_SECRET,
@@ -89,35 +53,32 @@ const login = async (req, res) => {
       user: { username: user.Username, role: user.Role },
     });
   } catch (error) {
+    // SỬ DỤNG .includes() ĐỂ BẮT LỖI ĐĂNG NHẬP
+    if (
+      error.message &&
+      (error.message.includes("Tài khoản không tồn tại") ||
+        error.message.includes("Sai mật khẩu") ||
+        error.message.includes("bị khóa"))
+    ) {
+      // Mã 403 cho tài khoản bị khóa, 400 cho các lỗi còn lại
+      const statusCode = error.message.includes("khóa") ? 403 : 400;
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message });
+    }
+
     console.error("Lỗi đăng nhập:", error);
     res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };
 
 const logout = async (req, res) => {
+  // Vì JWT được quản lý trên frontend (localStorage), 
+  // API logout thực chất chỉ trả về phản hồi thành công.
+  // Frontend sẽ tự xóa token để hoàn tất quá trình.
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Token không tồn tại!",
-      });
-    }
-
-    const decoded = jwt.decode(token);
-
-    await pool.query(
-      "INSERT INTO TokenBlacklist (token, expiredAt) VALUES (?, ?)",
-      [token, new Date(decoded.exp * 1000)],
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Đăng xuất thành công!",
-    });
+    res.status(200).json({ success: true, message: "Đăng xuất thành công!" });
   } catch (error) {
-    console.error("Lỗi logout:", error);
     res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };

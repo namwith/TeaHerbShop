@@ -1,37 +1,66 @@
-const { pool } = require("../config/db");
+const productService = require("../services/productService");
 
+// LẤY DANH SÁCH SẢN PHẨM (DÀNH CHO KHÁCH HÀNG)
 const getProducts = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM Products ORDER BY ProductID DESC",
-    );
-    res.status(200).json({ success: true, data: rows });
+    // Khách hàng gọi API này sẽ tự động bị lọc mất các sản phẩm Stock <= 0
+    const products = await productService.getAllProducts(false);
+    res.status(200).json({ success: true, data: products });
   } catch (error) {
-    console.error("Lỗi lấy sản phẩm:", error);
+    console.error("Lỗi Controller - getProducts:", error);
     res
       .status(500)
       .json({ success: false, message: "Lỗi server khi lấy sản phẩm!" });
   }
 };
 
-const getProductById = async (req, res) => {
+// LẤY DANH SÁCH TẤT CẢ (DÀNH CHO ADMIN QUẢN LÝ KHO)
+const getAdminProducts = async (req, res) => {
   try {
-    const { id } = req.params;
-    const [rows] = await pool.query(
-      "SELECT * FROM Products WHERE ProductID = ?",
-      [id],
-    );
-
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy sản phẩm" });
-    }
-    res.status(200).json({ success: true, data: rows[0] });
+    // Truyền true để lấy full cả hàng hết (để admin còn biết đường nhập thêm)
+    const products = await productService.getAllProducts(true);
+    res.status(200).json({ success: true, data: products });
   } catch (error) {
-    console.error("Lỗi lấy chi tiết SP:", error);
+    console.error("Lỗi Controller - getAdminProducts:", error);
     res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };
 
-module.exports = { getProducts, getProductById };
+// LẤY CHI TIẾT SẢN PHẨM
+const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productService.getProductById(id);
+
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+    res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    console.error("Lỗi Controller - getProductById:", error);
+    res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+};
+
+// ĐÁNH GIÁ SẢN PHẨM
+const submitReview = async (req, res) => {
+  try {
+    const { productId, orderId, rating, comment } = req.body;
+    const userId = req.user.id; // Lấy từ middleware verifyToken
+
+    if (!productId || !orderId || !rating) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin đánh giá!" });
+    }
+
+    await productService.submitReview(userId, productId, orderId, rating, comment);
+    
+    res.status(200).json({ success: true, message: "Cảm ơn bạn đã đánh giá sản phẩm!" });
+  } catch (error) {
+    console.error("Lỗi Controller - submitReview:", error);
+    res.status(500).json({ success: false, message: "Lỗi lưu đánh giá!" });
+  }
+};
+
+module.exports = { getProducts, getAdminProducts, getProductById, submitReview };

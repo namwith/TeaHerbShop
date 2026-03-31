@@ -1,55 +1,86 @@
-const productRepo = require('../repositories/productRepository');
-const { ProductType } = require('../utils/enums');
-class ProductService {
-    // 1. Lấy danh sách sản phẩm
-    async getAllProducts() {
-        return await productRepo.findAll();
+const { pool } = require("../config/db");
+
+const productService = {
+  // 1. Lấy danh sách (Có phân biệt Admin và Khách)
+  getAllProducts: async (isAdmin = false) => {
+    // Admin thấy toàn bộ kho. Khách chỉ thấy hàng còn Tồn kho > 0 (Ẩn hàng hết)
+    const query = isAdmin
+      ? "SELECT * FROM Products ORDER BY ProductID DESC"
+      : "SELECT * FROM Products WHERE Stock > 0 ORDER BY ProductID DESC";
+
+    const [rows] = await pool.query(query);
+    return rows;
+  },
+
+  // 2. Lấy chi tiết 1 sản phẩm kèm theo Đánh giá (Reviews)
+  getProductById: async (id) => {
+    // Lấy thông tin cơ bản của sản phẩm
+    const [productRows] = await pool.query(
+      "SELECT * FROM Products WHERE ProductID = ?",
+      [id],
+    );
+
+    if (productRows.length === 0) return null;
+    const product = productRows[0];
+
+    // Lấy danh sách đánh giá của sản phẩm này
+    const [reviews] = await pool.query(
+      `SELECT r.ReviewID, r.Rating, r.Comment, r.CreatedAt, u.Username, u.FullName
+       FROM Reviews r
+       JOIN Users u ON r.UserID = u.UserID
+       WHERE r.ProductID = ?
+       ORDER BY r.CreatedAt DESC`,
+      [id]
+    );
+
+    // Tính điểm trung bình và số lượt đánh giá
+    product.reviews = reviews;
+    product.reviewCount = reviews.length;
+    if (reviews.length > 0) {
+        const totalRating = reviews.reduce((sum, rv) => sum + rv.Rating, 0);
+        product.rating = totalRating / reviews.length;
+    } else {
+        product.rating = 0;
     }
 
-    // 2. Thêm mới sản phẩm (Kèm kiểm tra logic)
-    async createProduct(data) {
-        // Validation: Kiểm tra dữ liệu đầu vào
-        if (!data.Name || !data.Price) {
-            throw new Error("Tên và giá sản phẩm là bắt buộc!");
-        }
-        if (data.Price <= 0) {
-            throw new Error("Giá sản phẩm phải lớn hơn 0!");
-        }
-        
-        // Kiểm tra loại sản phẩm có đúng chuẩn Enum không
-        const validTypes = Object.values(ProductType);
-        if (!validTypes.includes(data.Type)) {
-            throw new Error(`Loại sản phẩm không hợp lệ! Chỉ chấp nhận: ${validTypes.join(', ')}`);
-        }
+    return product;
+  },
 
-        // Vượt qua hết bài test -> Gọi Repository lưu vào DB
-        return await productRepo.create(data);
+  // 3. Trừ kho khi khách đặt hàng thành công
+  decreaseStock: async (productId, quantity) => {
+    // Trừ đi số lượng, với điều kiện trong kho phải còn đủ hàng
+    const [result] = await pool.query(
+      "UPDATE Products SET Stock = Stock - ? WHERE ProductID = ? AND Stock >= ?",
+      [quantity, productId, quantity],
+    );
+
+    if (result.affectedRows === 0) {
+      throw new Error(`Sản phẩm ID ${productId} không đủ số lượng trong kho!`);
     }
+    return true;
+  },
 
-    // 3. Cập nhật sản phẩm
-    async updateProduct(id, data) {
-        // Kiểm tra xem sản phẩm có tồn tại không trước khi sửa
-        const existingProduct = await productRepo.findById(id);
-        if (!existingProduct) {
-            throw new Error("Không tìm thấy sản phẩm này trong hệ thống!");
-        }
+  // 1. Cập nhật tồn kho (Admin)
+    updateProductStock: async (id, stock) => {
+        await pool.query("UPDATE Products SET Stock = ? WHERE ProductID = ?", [stock, id]);
+        return true;
+    },
 
-        if (data.Price && data.Price <= 0) {
-            throw new Error("Giá cập nhật phải lớn hơn 0!");
-        }
+    // 2. Ẩn/Hiện sản phẩm (Admin)
+    toggleProductStatus: async (id, status) => {
+        await pool.query("UPDATE Products SET Status = ? WHERE ProductID = ?", [status, id]);
+        return true;
+    },
 
-        return await productRepo.update(id, data);
+    // 3. Đánh giá sản phẩm
+    submitReview: async (userId, productId, orderId, rating, comment) => {
+        // Có thể thêm bước kiểm tra xem khách đã mua hàng chưa thông qua OrderID
+        const [result] = await pool.query(
+            "INSERT INTO Reviews (UserID, ProductID, OrderID, Rating, Comment) VALUES (?, ?, ?, ?, ?)",
+            [userId, productId, orderId, rating, comment]
+        );
+        return result.insertId;
     }
+};
 
-    // 4. Xóa sản phẩm
-    async deleteProduct(id) {
-        const existingProduct = await productRepo.findById(id);
-        if (!existingProduct) {
-            throw new Error("Không tìm thấy sản phẩm để xóa!");
-        }
-
-        return await productRepo.delete(id);
-    }
-}
-
-module.exports = new ProductService();
+module.exports = productService;

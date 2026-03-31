@@ -1,0 +1,39 @@
+{
+  "common": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "account": "Account",
+    "orders": "Orders",
+    "logout": "Log Out",
+    "dashboard": "Dashboard",
+    "checkout": "Checkout",
+    "contact": "Contact",
+    "about": "About"
+  },
+  "home": {
+    "hero_title": "Art of Tea & Natural Herbs",
+    "hero_subtitle": "Discover our premium collection of exquisite teas and rare herbs, bringing relaxation and health to your soul.",
+    "shop_now": "Shop Now",
+    "view_more": "View More",
+    "featured_products": "Featured Products",
+    "categories": "Categories",
+    "tea": "Tea Ceremony",
+    "herb": "Medical Herb",
+    "teaware": "Tea Ware",
+    "no_products_found": "No products found matching your filters",
+    "add_to_cart": "Add to Cart"
+  },
+  "footer": {
+    "brand_description": "Bringing you the highest quality premium teas from around the world.",
+    "quick_links": "Quick Links",
+    "information": "Information",
+    "newsletter": "Newsletter",
+    "newsletter_description": "Sign up for updates on new products and special promotions.",
+    "subscribe": "Subscribe",
+    "all_rights_reserved": "All rights reserved.",
+    "designed_by": "Designed by"
+  }
+}

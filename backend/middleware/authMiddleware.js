@@ -1,62 +1,49 @@
 const jwt = require("jsonwebtoken");
 
+// 1. Kiểm tra xem người dùng có Token hợp lệ không
 const verifyToken = (req, res, next) => {
-  // 1. Lấy token từ header của request (Chuẩn: "Bearer <token>")
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  // 2. Nếu không có token -> Báo lỗi 401 Unauthorized (Chưa xác thực)
-  if (!token) {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({
+          success: false,
+          message: "Token không hợp lệ hoặc đã hết hạn!",
+        });
+      }
+      req.user = user;
+      next();
+    });
+  } else {
     return res.status(401).json({
       success: false,
-      message: "Vui lòng đăng nhập để thực hiện chức năng này!",
-    });
-  }
-
-  try {
-    // 3. Giải mã token bằng Secret Key
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // 4. Gắn thông tin user vừa giải mã vào request để các Controller sau có thể dùng
-    req.user = decoded;
-
-    // 5. Cho phép đi tiếp vào Controller (Mở cửa cho qua)
-    next();
-  } catch (error) {
-    // Token sai, bị sửa đổi, hoặc hết hạn -> Báo lỗi 403 Forbidden
-    return res.status(403).json({
-      success: false,
-      message: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn!",
+      message: "Bạn chưa xác thực (Không tìm thấy Token)!",
     });
   }
 };
 
+// 2. Kiểm tra xem người dùng có phải là Admin không
 const verifyAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+  // Vì verifyAdmin luôn đi sau verifyToken trên Route, nên req.user đã có sẵn
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Bạn cần đăng nhập để thực hiện chức năng này!",
+    });
+  }
+
+  const userRole = req.user.role || req.user.Role || "";
+
+  if (userRole.trim().toLowerCase() === "admin") {
     next();
   } else {
-    return res.status(403).json({
+    console.log("❌ LỖI QUYỀN: Token đang chứa quyền là ->", `"${userRole}"`);
+    res.status(403).json({
       success: false,
       message: "Quyền truy cập bị từ chối! Chức năng này chỉ dành cho Admin.",
     });
   }
 };
 
-const checkBlacklist = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) return res.status(401).json({ message: "Không có token!" });
-
-  const [rows] = await pool.query(
-    "SELECT * FROM TokenBlacklist WHERE token = ?",
-    [token],
-  );
-
-  if (rows.length > 0) {
-    return res.status(401).json({ message: "Token đã bị thu hồi (logout)!" });
-  }
-
-  next();
-};
-
-module.exports = { verifyToken, verifyAdmin, checkBlacklist };
+module.exports = { verifyToken, verifyAdmin };
