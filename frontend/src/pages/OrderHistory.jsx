@@ -1,7 +1,7 @@
 // src/pages/OrderHistory.jsx
 
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
+import api from "../api/axios.js";
 import { AuthContext } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 

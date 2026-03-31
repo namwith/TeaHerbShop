@@ -1,7 +1,6 @@
-// src/pages/OrderDetail.jsx
-
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
+// 1. IMPORT API TỪ FILE AXIOS INSTANCE (Chú ý: ../api/axios.js)
+import api from "../api/axios.js";
 import { useParams, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
@@ -16,12 +15,8 @@ const OrderDetail = () => {
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:3000/api/orders/me/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        // 2. GỌI API SIÊU NGẮN GỌN (Không cần URL cứng, không cần nhét Token thủ công)
+        const res = await api.get(`/orders/me/${id}`);
         if (res.data.success) {
           setOrderData(res.data.data);
         }
@@ -38,7 +33,6 @@ const OrderDetail = () => {
     if (token && id) fetchOrderDetails();
   }, [token, id]);
 
-  // Hàm tự động tô màu cho Trạng thái đơn hàng (sao chép từ OrderHistory)
   const getStatusBadge = (status) => {
     switch (status) {
       case "Chờ xác nhận":

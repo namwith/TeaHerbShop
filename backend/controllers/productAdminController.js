@@ -1,6 +1,7 @@
 const { pool } = require("../config/db");
 const fs = require("fs");
 const path = require("path");
+const productService = require("../services/productService");
 
 const getAdminProducts = async (req, res) => {
   try {
@@ -85,9 +86,42 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+// CẬP NHẬT KHO
+const updateProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stock } = req.body;
+
+    // Gọi Service thực hiện lệnh SQL
+    await productService.updateProductStock(id, stock);
+    
+    res.status(200).json({ success: true, message: "Cập nhật kho thành công!" });
+  } catch (error) {
+    console.error("Lỗi cập nhật kho:", error);
+    res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+};
+
+const toggleProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Gọi Service thực hiện lệnh SQL
+    await productService.toggleProductStatus(id, status);
+    
+    res.status(200).json({ success: true, message: "Cập nhật trạng thái thành công!" });
+  } catch (error) {
+    console.error("Lỗi cập nhật trạng thái SP:", error);
+    res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+};
+
 module.exports = {
   getAdminProducts,
   createProduct,
   updateProduct,
   deleteProduct,
+  updateProductStock,
+  toggleProductStatus
 };

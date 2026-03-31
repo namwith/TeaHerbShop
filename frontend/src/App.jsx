@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import Navbar from "./components/Navbar";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Home from "./pages/Home";
@@ -15,21 +16,18 @@ import OrderDetail from "./pages/OrderDetail";
 function App() {
   const { user } = useContext(AuthContext);
 
-  // Component bảo vệ: Nếu không phải admin thì đá văng về trang chủ
-  const AdminRoute = ({ element }) => {
-    return user && user.role === "admin" ? element : <Navigate to="/" />;
-  };
-
   return (
     <BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+      />
 
-    <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} />
-    
       {/* Navbar sẽ luôn hiển thị ở mọi trang */}
       <Navbar />
 
       <Routes>
-        {/* Trang dành cho khách mua hàng (Đã thay bằng Component Home thật) */}
         <Route path="/" element={<Home />} />
 
         <Route
@@ -52,14 +50,29 @@ function App() {
           element={user ? <Checkout /> : <Navigate to="/?login=true" />}
         />
 
-        {/* Trang dành riêng cho Admin (Có lớp bảo vệ AdminRoute) */}
+        {/* ======================================= */}
+        {/* ROUTES DÀNH RIÊNG CHO ADMIN (Đã tối ưu) */}
+        {/* ======================================= */}
         <Route
           path="/admin"
-          element={<AdminRoute element={<AdminDashboard />} />}
+          element={
+            user && user.role === "admin" ? (
+              <AdminDashboard />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
         />
+
         <Route
           path="/admin/orders/:id"
-          element={<AdminRoute element={<OrderDetails />} />}
+          element={
+            user && user.role === "admin" ? (
+              <OrderDetails />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
         />
       </Routes>
     </BrowserRouter>

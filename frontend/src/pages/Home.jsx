@@ -2,14 +2,18 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import { toast } from "react-toastify";
-// 1. IMPORT THƯ VIỆN FUSE.JS
 import Fuse from "fuse.js";
+import api from "../api/axios";
 
 const Home = () => {
   const [products, setProducts] = useState([]);
-
-  // 2. STATE LƯU TỪ KHÓA TÌM KIẾM
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ==========================================
+  // 1. STATE DÀNH CHO PHÂN TRANG (PAGINATION)
+  // ==========================================
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Số sản phẩm hiển thị trên 1 trang (có thể chỉnh thành 12, 16...)
 
   const { addToCart } = useContext(CartContext);
 
@@ -17,14 +21,16 @@ const Home = () => {
     fetchProducts();
   }, []);
 
+  // Khi người dùng gõ tìm kiếm -> Tự động đưa về trang 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   const fetchProducts = async () => {
-    try {
-      const res = await axios.get("http://localhost:3000/api/products");
-      if (res.data.success) {
-        setProducts(res.data.data);
-      }
-    } catch (error) {
-      console.error("Lỗi lấy sản phẩm:", error);
+    // Chỉ cần gọi /products, nó tự hiểu là http://localhost:3000/api/products
+    const res = await api.get("/products");
+    if (res.data.success) {
+      setProducts(res.data.data);
     }
   };
 
@@ -32,35 +38,51 @@ const Home = () => {
     addToCart(product);
     toast.success(`🛒 Đã thêm "${product.Name}" vào giỏ hàng!`);
   };
-  // THÊM HÀM NÀY ĐỂ BỎ DẤU TIẾNG VIỆT
+
   const removeAccentsAndSpaces = (str) => {
     if (!str) return "";
     return str
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/đ/g, "d")
-      .replace(/Đ/g, "D") // Đổi chữ đ
-      .replace(/\s+/g, "") // XÓA SẠCH KHOẢNG TRẮNG (VD: "o long" -> "olong")
+      .replace(/Đ/g, "D")
+      .replace(/\s+/g, "")
       .toLowerCase();
   };
 
-  // 2. CẤU HÌNH LẠI BỘ NÃO FUSE
   const fuse = new Fuse(products, {
     keys: ["Name"],
-    threshold: 0.15, // Giảm độ mờ xuống 0.3 để tìm chính xác hơn
+    threshold: 0.15,
     ignoreLocation: true,
     getFn: (obj, path) => {
       const value = obj[path[0]];
-      return removeAccentsAndSpaces(value); // Ép dữ liệu gốc dính liền lại
+      return removeAccentsAndSpaces(value);
     },
   });
 
-  // 3. TÌM KIẾM (Từ khóa gõ vào cũng bị ép dính liền)
+  // TẤT CẢ SẢN PHẨM SAU KHI LỌC TÌM KIẾM
   const displayedProducts = searchQuery
     ? fuse
         .search(removeAccentsAndSpaces(searchQuery))
         .map((result) => result.item)
     : products;
+
+  // ==========================================
+  // 2. LOGIC TÍNH TOÁN SẢN PHẨM CHO TRANG HIỆN TẠI
+  // ==========================================
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  // Cắt lấy đúng 8 sản phẩm cho trang hiện tại
+  const currentItems = displayedProducts.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(displayedProducts.length / itemsPerPage);
+
+  // Hàm chuyển trang
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div className="container mt-4 mb-5">
@@ -72,7 +94,7 @@ const Home = () => {
           Khám phá hương vị trà và thảo mộc tinh tế nhất
         </p>
 
-        {/* 5. THANH TÌM KIẾM SẢN PHẨM */}
+        {/* THANH TÌM KIẾM */}
         <div className="row justify-content-center mt-4">
           <div className="col-md-6">
             <div
@@ -85,7 +107,7 @@ const Home = () => {
               <input
                 type="text"
                 className="form-control border-0 bg-white"
-                placeholder="Tìm kiếm trà, thảo mộc (vd: thai nguyen, o long)..."
+                placeholder="Tìm kiếm trà, thảo mộc..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ boxShadow: "none" }}
@@ -109,14 +131,15 @@ const Home = () => {
         </div>
       </div>
 
+      {/* DANH SÁCH SẢN PHẨM */}
       <div className="row g-4">
         {products.length === 0 ? (
           <div className="text-center w-100 py-5">
             <div className="spinner-border text-success" role="status"></div>
             <p className="mt-2 text-muted">Đang pha trà... Vui lòng đợi!</p>
           </div>
-        ) : displayedProducts.length > 0 ? (
-          displayedProducts.map((p) => (
+        ) : currentItems.length > 0 ? (
+          currentItems.map((p) => (
             <div className="col-md-3" key={p.ProductID}>
               <div className="card h-100 shadow-sm border-0 transition-hover">
                 {p.ImageURL ? (
@@ -173,6 +196,52 @@ const Home = () => {
           </div>
         )}
       </div>
+
+      {/* ========================================== */}
+      {/* 3. GIAO DIỆN NÚT CHUYỂN TRANG */}
+      {/* ========================================== */}
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center mt-5">
+          <ul className="pagination shadow-sm">
+            {/* Nút Previous */}
+            <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+              <button
+                className="page-link text-success"
+                onClick={() => paginate(currentPage - 1)}
+              >
+                &laquo; Trước
+              </button>
+            </li>
+
+            {/* Các số trang */}
+            {[...Array(totalPages)].map((_, index) => (
+              <li
+                key={index}
+                className={`page-item ${currentPage === index + 1 ? "active" : ""}`}
+              >
+                <button
+                  className={`page-link ${currentPage === index + 1 ? "bg-success border-success" : "text-success"}`}
+                  onClick={() => paginate(index + 1)}
+                >
+                  {index + 1}
+                </button>
+              </li>
+            ))}
+
+            {/* Nút Next */}
+            <li
+              className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
+            >
+              <button
+                className="page-link text-success"
+                onClick={() => paginate(currentPage + 1)}
+              >
+                Sau &raquo;
+              </button>
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

@@ -45,4 +45,36 @@ const changeUserPassword = async (userId, oldPassword, newPassword) => {
   return true;
 };
 
-module.exports = { getUserProfile, updateUserProfile, changeUserPassword };
+// ... (giữ nguyên các hàm cũ)
+const getAllUsers = async (req, res) => {
+  try {
+    const data = await userService.getAllAdminUsers();
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi lấy user" });
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  try {
+    await userService.updateUserStatus(req.params.id, req.body.status);
+    res.status(200).json({ success: true, message: "Cập nhật user thành công!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi cập nhật user" });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    await userService.deleteUser(req.params.id);
+    res.status(200).json({ success: true, message: "Đã xóa tài khoản!" });
+  } catch (error) {
+    if (error.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(400).json({ success: false, message: 'Khách này đã có đơn hàng, vui lòng dùng chức năng Khóa!' });
+    }
+    res.status(500).json({ success: false, message: "Lỗi server khi xóa." });
+  }
+};
+
+// Export tất cả hàm để Controller gọi
+module.exports = { getUserProfile, updateUserProfile, changeUserPassword, getAllUsers, updateUserStatus, deleteUser };

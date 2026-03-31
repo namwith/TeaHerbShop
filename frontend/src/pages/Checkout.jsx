@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// 1. IMPORT API
+import api from "../api/axios.js";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
 
-// Import 2 linh kiện vừa tạo
 import CheckoutForm from "./CheckoutForm";
 import OrderSummary from "./OrderSummary";
 
@@ -14,7 +14,6 @@ const Checkout = () => {
   const { cart, clearCart } = useContext(CartContext);
   const navigate = useNavigate();
 
-  // Tách nhỏ địa chỉ ra để dễ quản lý
   const [formData, setFormData] = useState({
     FullName: "",
     Phone: "",
@@ -33,13 +32,11 @@ const Checkout = () => {
     0,
   );
 
-  // Lấy SĐT và Tên từ Profile (Địa chỉ cũ gộp chung nên tạm bỏ qua để khách chọn lại chuẩn xác)
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // 2. GỌI API CỰC NGẮN
+        const res = await api.get("/users/profile");
         if (res.data.success) {
           const data = res.data.data;
           setFormData((prev) => ({
@@ -55,11 +52,9 @@ const Checkout = () => {
     if (token) fetchProfile();
   }, [token]);
 
-  // Xử lý Đặt hàng
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
-    // Ràng buộc nghiêm ngặt bằng JS
     if (cart.length === 0) return toast.error("Giỏ hàng của bạn đang trống!");
     if (!/^0\d{9}$/.test(formData.Phone)) {
       return toast.warning(
@@ -67,10 +62,9 @@ const Checkout = () => {
       );
     }
 
-    // Ghép 4 trường thành 1 chuỗi địa chỉ hoàn chỉnh gửi cho Backend
     const fullShippingAddress = `${formData.Street}, ${formData.Ward}, ${formData.District}, ${formData.Province}`;
-
     setIsLoading(true);
+
     try {
       const payload = {
         cartItems: cart,
@@ -80,18 +74,13 @@ const Checkout = () => {
         paymentMethod: formData.PaymentMethod,
       };
 
-      const res = await axios.post(
-        "http://localhost:3000/api/orders",
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      // 3. GỌI API TẠO ĐƠN HÀNG (Không cần nhét header token)
+      const res = await api.post("/orders", payload);
 
       if (res.data.success) {
         toast.success("🎉 Đặt hàng thành công! Cảm ơn bạn.");
         clearCart();
-        navigate("/orders"); // Đặt xong thì chuyển thẳng sang xem Lịch sử đơn hàng cho chuyên nghiệp
+        navigate("/orders");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi đặt hàng!");
@@ -100,7 +89,6 @@ const Checkout = () => {
     }
   };
 
-  // Chặn nếu giỏ trống
   if (cart.length === 0) {
     return (
       <div
@@ -124,9 +112,7 @@ const Checkout = () => {
       <h3 className="fw-bold mb-4" style={{ color: themeColor }}>
         Thanh Toán Đơn Hàng
       </h3>
-
       <div className="row g-4">
-        {/* Component Nhập liệu */}
         <div className="col-lg-7">
           <CheckoutForm
             formData={formData}
@@ -134,8 +120,6 @@ const Checkout = () => {
             handlePlaceOrder={handlePlaceOrder}
           />
         </div>
-
-        {/* Component Tính tiền */}
         <div className="col-lg-5">
           <OrderSummary
             cart={cart}

@@ -35,7 +35,17 @@ const productService = {
     return true;
   },
 
-  // (Các hàm create, update, delete dành cho Admin mình sẽ bổ sung sau để bạn không bị ngợp)
+  // 1. Cập nhật tồn kho (Admin)
+    updateProductStock: async (id, stock) => {
+        await pool.query("UPDATE Products SET Stock = ? WHERE ProductID = ?", [stock, id]);
+        return true;
+    },
+
+    // 2. Ẩn/Hiện sản phẩm (Admin)
+    toggleProductStatus: async (id, status) => {
+        await pool.query("UPDATE Products SET Status = ? WHERE ProductID = ?", [status, id]);
+        return true;
+    }
 };
 
 module.exports = productService;

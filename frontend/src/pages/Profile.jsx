@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
-// Nhớ import toast
 import { toast } from "react-toastify";
 
 const Profile = () => {
@@ -52,11 +51,10 @@ const Profile = () => {
     e.preventDefault();
     setIsLoadingProfile(true);
     try {
-      const res = await axios.put(
-        "http://localhost:3000/api/users/profile",
-        profile,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await api.put("/users/change-password", {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      });
       if (res.data.success) {
         toast.success("🎉 Cập nhật hồ sơ thành công!");
       }

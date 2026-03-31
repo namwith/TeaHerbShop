@@ -101,5 +101,5 @@ const Navbar = () => {
   );
 };
 
-// DÒNG QUAN TRỌNG NHẤT ĐỂ FIX LỖI: Xuất Component ra làm mặc định
+// Xuất component để sử dụng ở App.js
 export default Navbar;

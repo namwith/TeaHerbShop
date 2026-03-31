@@ -11,8 +11,8 @@ const OrderSummary = ({ cart, totalAmount, isLoading, themeColor }) => {
       <div className="mb-3" style={{ maxHeight: "300px", overflowY: "auto" }}>
         {cart.map((item, index) => (
           <div
-            key={index}
-            className="d-flex justify-content-between align-items-center mb-3 pe-2"
+            key={item.ProductID}
+            className="d-flex justify-content-between..."
           >
             <div className="d-flex align-items-center">
               <div
