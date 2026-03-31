@@ -122,25 +122,36 @@ const StatsTab = ({ themeColor, token }) => {
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
-                      stopColor={themeColor}
-                      stopOpacity={0.8}
+                      stopColor="hsl(24, 95%, 53%)"
+                      stopOpacity={0.4}
                     />
-                    <stop offset="95%" stopColor={themeColor} stopOpacity={0} />
+                    <stop offset="95%" stopColor="hsl(24, 95%, 53%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: "#999", fontSize: 12 }} 
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                />
                 <YAxis
                   tickFormatter={(val) => `${val / 1000}k`}
-                  tick={{ fill: "#888", fontSize: 12 }}
+                  tick={{ fill: "#999", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  dx={-10}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="revenue"
                   stroke={themeColor}
+                  strokeWidth={4}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
+                  animationDuration={1500}
                 />
               </AreaChart>
             </ResponsiveContainer>

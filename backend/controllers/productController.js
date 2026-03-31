@@ -44,4 +44,23 @@ const getProductById = async (req, res) => {
   }
 };
 
-module.exports = { getProducts, getAdminProducts, getProductById };
+// ĐÁNH GIÁ SẢN PHẨM
+const submitReview = async (req, res) => {
+  try {
+    const { productId, orderId, rating, comment } = req.body;
+    const userId = req.user.id; // Lấy từ middleware verifyToken
+
+    if (!productId || !orderId || !rating) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin đánh giá!" });
+    }
+
+    await productService.submitReview(userId, productId, orderId, rating, comment);
+    
+    res.status(200).json({ success: true, message: "Cảm ơn bạn đã đánh giá sản phẩm!" });
+  } catch (error) {
+    console.error("Lỗi Controller - submitReview:", error);
+    res.status(500).json({ success: false, message: "Lỗi lưu đánh giá!" });
+  }
+};
+
+module.exports = { getProducts, getAdminProducts, getProductById, submitReview };

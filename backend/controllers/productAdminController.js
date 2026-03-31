@@ -18,13 +18,19 @@ const getAdminProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { Name, Type, Price, Description } = req.body;
+    const { Name, Type, Price, Description, name, type, price, description } = req.body;
+    const finalName = Name || name;
+    const finalType = Type || type;
+    const finalPrice = Price || price || 0;
+    const finalStock = req.body.Stock || req.body.stock || 100;
+    const finalDesc = Description || description || "";
+
     // Nếu có upload ảnh thì lấy đường dẫn, không thì để null
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
     await pool.query(
-      "INSERT INTO Products (Name, Type, Price, Description, ImageURL) VALUES (?, ?, ?, ?, ?)",
-      [Name, Type, Price || 0, Description || "", imagePath],
+      "INSERT INTO Products (Name, Type, Price, Stock, Description, ImageURL) VALUES (?, ?, ?, ?, ?, ?)",
+      [finalName, finalType, finalPrice, finalStock, finalDesc, imagePath],
     );
 
     res
@@ -41,21 +47,27 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { Name, Type, Price, Description } = req.body;
+    const { Name, Type, Price, Description, name, type, price, description } = req.body;
+    const finalName = Name || name;
+    const finalType = Type || type;
+    const finalPrice = Price || price || 0;
+    const finalStock = req.body.Stock || req.body.stock || 0;
+    const finalDesc = Description || description || "";
 
     let updateQuery =
-      "UPDATE Products SET Name=?, Type=?, Price=?, Description=? WHERE ProductID=?";
-    let params = [Name, Type, Price, Description, id];
+      "UPDATE Products SET Name=?, Type=?, Price=?, Stock=?, Description=? WHERE ProductID=?";
+    let params = [finalName, finalType, finalPrice, finalStock, finalDesc, id];
 
     // Nếu Admin có chọn ảnh mới thì cập nhật cả cột ImageURL
     if (req.file) {
       updateQuery =
-        "UPDATE Products SET Name=?, Type=?, Price=?, Description=?, ImageURL=? WHERE ProductID=?";
+        "UPDATE Products SET Name=?, Type=?, Price=?, Stock=?, Description=?, ImageURL=? WHERE ProductID=?";
       params = [
-        Name,
-        Type,
-        Price,
-        Description,
+        finalName,
+        finalType,
+        finalPrice,
+        finalStock,
+        finalDesc,
         `/uploads/${req.file.filename}`,
         id,
       ];

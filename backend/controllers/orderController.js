@@ -68,6 +68,23 @@ const getMyOrderDetails = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orderId = req.params.id;
+
+    await orderService.cancelOrder(userId, orderId);
+    
+    res.status(200).json({ success: true, message: "Đã hủy đơn hàng thành công!" });
+  } catch (error) {
+    if (error.message.includes("không tìm thấy") || error.message.includes("Chỉ có thể hủy")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    console.error("Lỗi hủy đơn:", error);
+    res.status(500).json({ success: false, message: "Lỗi server khi hủy đơn" });
+  }
+};
+
 // === DÀNH CHO ADMIN ===
 const getAllOrders = async (req, res) => {
   try {
@@ -106,6 +123,7 @@ module.exports = {
   createOrder,
   getMyOrders,
   getMyOrderDetails,
+  cancelOrder,
   getAllOrders,
   getOrderDetails,
   updateOrderStatus,

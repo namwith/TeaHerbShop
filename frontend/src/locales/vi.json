@@ -1,0 +1,39 @@
+{
+  "common": {
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "cart": "Giỏ hàng",
+    "login": "Đăng nhập",
+    "signup": "Đăng ký",
+    "account": "Tài khoản",
+    "orders": "Đơn hàng",
+    "logout": "Đăng xuất",
+    "dashboard": "Bảng điều khiển",
+    "checkout": "Thanh toán",
+    "contact": "Liên hệ",
+    "about": "Giới thiệu"
+  },
+  "home": {
+    "hero_title": "Nghệ Thuật Trà Đạo & Thảo Mộc Tự Nhiên",
+    "hero_subtitle": "Khám phá bộ sưu tập trà thượng hạng và các loại thảo mộc quý hiếm, mang lại sự thư thái và sức khỏe cho tâm hồn bạn.",
+    "shop_now": "Mua Ngay",
+    "view_more": "Xem Thêm",
+    "featured_products": "Sản Phẩm Nổi Bật",
+    "categories": "Danh Mục",
+    "tea": "Trà Đạo",
+    "herb": "Thảo Mộc",
+    "teaware": "Trà Cụ",
+    "no_products_found": "Không tìm thấy sản phẩm nào phù hợp với bộ lọc của bạn",
+    "add_to_cart": "Thêm vào giỏ"
+  },
+  "footer": {
+    "brand_description": "Mang đến cho bạn những loại trà premium chất lượng cao nhất từ khắp nơi trên thế giới.",
+    "quick_links": "Liên Kết Nhanh",
+    "information": "Thông Tin",
+    "newsletter": "Nhận Tin Tức",
+    "newsletter_description": "Đăng ký nhận thông tin về sản phẩm mới và khuyến mãi đặc biệt.",
+    "subscribe": "Đăng ký",
+    "all_rights_reserved": "Tất cả quyền được bảo lưu.",
+    "designed_by": "Thiết kế bởi"
+  }
+}

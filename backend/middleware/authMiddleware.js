@@ -25,22 +25,25 @@ const verifyToken = (req, res, next) => {
 
 // 2. Kiểm tra xem người dùng có phải là Admin không
 const verifyAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    // Lấy quyền của user
-    const userRole = req.user.role || req.user.Role || "";
+  // Vì verifyAdmin luôn đi sau verifyToken trên Route, nên req.user đã có sẵn
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Bạn cần đăng nhập để thực hiện chức năng này!",
+    });
+  }
 
-    // Thêm .trim() để dọn sạch khoảng trắng thừa (nếu có) trong MySQL
-    if (userRole.trim().toLowerCase() === "admin") {
-      next();
-    } else {
-      // In ra Terminal xem rốt cuộc nó đang hiểu quyền là gì
-      console.log("❌ LỖI QUYỀN: Token đang chứa quyền là ->", `"${userRole}"`);
-      res.status(403).json({
-        success: false,
-        message: "Quyền truy cập bị từ chối! Chức năng này chỉ dành cho Admin.",
-      });
-    }
-  });
+  const userRole = req.user.role || req.user.Role || "";
+
+  if (userRole.trim().toLowerCase() === "admin") {
+    next();
+  } else {
+    console.log("❌ LỖI QUYỀN: Token đang chứa quyền là ->", `"${userRole}"`);
+    res.status(403).json({
+      success: false,
+      message: "Quyền truy cập bị từ chối! Chức năng này chỉ dành cho Admin.",
+    });
+  }
 };
 
 module.exports = { verifyToken, verifyAdmin };

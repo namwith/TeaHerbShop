@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 // 1. Lấy thông tin User
 const getUserProfile = async (userId) => {
   const [rows] = await pool.query(
-    "SELECT UserID, Username, Role, FullName, Phone, Address, Avatar, Status, CreatedAt FROM Users WHERE UserID = ?",
+    "SELECT UserID, Username, Role, FullName, Phone, Address, Email, Avatar, Status, CreatedAt FROM Users WHERE UserID = ?",
     [userId]
   );
   return rows.length > 0 ? rows[0] : null;
@@ -13,10 +13,14 @@ const getUserProfile = async (userId) => {
 
 // 2. Cập nhật thông tin User
 const updateUserProfile = async (userId, data) => {
-  const { FullName, Phone, Address } = data;
+  const fullName = data.fullName || data.FullName || "";
+  const phone = data.phone || data.Phone || "";
+  const address = data.address || data.Address || "";
+  const email = data.email || data.Email || "";
+  
   await pool.query(
-    "UPDATE Users SET FullName = ?, Phone = ?, Address = ? WHERE UserID = ?",
-    [FullName || "", Phone || "", Address || "", userId]
+    "UPDATE Users SET FullName = ?, Phone = ?, Address = ?, Email = ? WHERE UserID = ?",
+    [fullName, phone, address, email, userId]
   );
   return true;
 };
@@ -45,36 +49,24 @@ const changeUserPassword = async (userId, oldPassword, newPassword) => {
   return true;
 };
 
-// ... (giữ nguyên các hàm cũ)
-const getAllUsers = async (req, res) => {
-  try {
-    const data = await userService.getAllAdminUsers();
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Lỗi lấy user" });
-  }
+// 4. Lấy danh sách user cho Admin
+const getAllAdminUsers = async () => {
+  const [rows] = await pool.query(
+    "SELECT UserID, Username, Role, FullName, Phone, Email, Status, CreatedAt FROM Users WHERE LOWER(Role) != 'admin' ORDER BY CreatedAt DESC"
+  );
+  return rows;
 };
 
-const updateUserStatus = async (req, res) => {
-  try {
-    await userService.updateUserStatus(req.params.id, req.body.status);
-    res.status(200).json({ success: true, message: "Cập nhật user thành công!" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Lỗi cập nhật user" });
-  }
+// 5. Cập nhật trạng thái
+const updateUserStatus = async (userId, status) => {
+  await pool.query("UPDATE Users SET Status = ? WHERE UserID = ?", [status, userId]);
+  return true;
 };
 
-const deleteUser = async (req, res) => {
-  try {
-    await userService.deleteUser(req.params.id);
-    res.status(200).json({ success: true, message: "Đã xóa tài khoản!" });
-  } catch (error) {
-    if (error.code === "ER_ROW_IS_REFERENCED_2") {
-      return res.status(400).json({ success: false, message: 'Khách này đã có đơn hàng, vui lòng dùng chức năng Khóa!' });
-    }
-    res.status(500).json({ success: false, message: "Lỗi server khi xóa." });
-  }
+// 6. Xóa User
+const deleteUser = async (userId) => {
+  await pool.query("DELETE FROM Users WHERE UserID = ?", [userId]);
+  return true;
 };
 
-// Export tất cả hàm để Controller gọi
-module.exports = { getUserProfile, updateUserProfile, changeUserPassword, getAllUsers, updateUserStatus, deleteUser };
+module.exports = { getUserProfile, updateUserProfile, changeUserPassword, getAllAdminUsers, updateUserStatus, deleteUser };

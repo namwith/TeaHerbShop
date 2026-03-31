@@ -29,6 +29,7 @@ const AdminDashboard = () => {
     Name: "",
     Type: "tea",
     Price: "",
+    Stock: "",
     Description: "",
     image: null,
   });
@@ -132,6 +133,7 @@ const AdminDashboard = () => {
         Name: prod.Name,
         Type: prod.Type,
         Price: prod.Price,
+        Stock: prod.Stock,
         Description: prod.Description || "",
         image: null,
       });
@@ -141,6 +143,7 @@ const AdminDashboard = () => {
         Name: "",
         Type: "tea",
         Price: "",
+        Stock: 100, // Default stock
         Description: "",
         image: null,
       });

@@ -74,6 +74,22 @@ const ProductModal = ({
                 </div>
               </div>
 
+              <div className="row mb-3">
+                <div className="col-12">
+                  <label className="form-label fw-bold">Số lượng tồn kho</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={productForm.Stock}
+                    onChange={(e) =>
+                      setProductForm({ ...productForm, Stock: e.target.value })
+                    }
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="mb-3">
                 <label className="form-label fw-bold">Mô tả</label>
                 <textarea

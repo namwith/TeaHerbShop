@@ -45,7 +45,7 @@ const {
 
 // 3.1 Thống kê (Dashboard)
 router.get("/dashboard", verifyToken, verifyAdmin, getDashboardStats);
-router.get("/chart-stats", verifyAdmin, getChartData);
+router.get("/chart-stats", verifyToken, verifyAdmin, getChartData);
 
 // 3.2 Quản lý Sản phẩm
 router.get("/products", verifyToken, verifyAdmin, getAdminProducts);
@@ -64,8 +64,8 @@ router.put(
   updateProduct,
 );
 router.delete("/products/:id", verifyToken, verifyAdmin, deleteProduct);
-router.put("/products/:id/stock", verifyAdmin, updateProductStock);
-router.put("/products/:id/status", verifyAdmin, toggleProductStatus);
+router.put("/products/:id/stock", verifyToken, verifyAdmin, updateProductStock);
+router.put("/products/:id/status", verifyToken, verifyAdmin, toggleProductStatus);
 
 // 3.3 Quản lý Đơn hàng
 router.get("/orders", verifyToken, verifyAdmin, getAllOrders);
@@ -75,6 +75,6 @@ router.put("/orders/:id/status", verifyToken, verifyAdmin, updateOrderStatus);
 // 3.4 Quản lý User
 router.get("/users", verifyToken, verifyAdmin, getAllUsers);
 router.put("/users/:id/status", verifyToken, verifyAdmin, updateUserStatus);
-router.delete("/users/:id", verifyAdmin, deleteUser);
+router.delete("/users/:id", verifyToken, verifyAdmin, deleteUser);
 
 module.exports = router;

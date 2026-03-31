@@ -5,10 +5,11 @@ const router = express.Router();
 const { verifyToken } = require("../middleware/authMiddleware");
 
 // Controllers
-const { register, login } = require("../controllers/authController");
+const { register, login, logout } = require("../controllers/authController");
 const {
   getProducts,
   getProductById,
+  submitReview,
 } = require("../controllers/productController");
 
 // NHỚ IMPORT THÊM changePassword VÀO ĐÂY:
@@ -22,6 +23,7 @@ const {
   createOrder,
   getMyOrders,
   getMyOrderDetails,
+  cancelOrder,
 } = require("../controllers/orderController");
 
 // ==========================================
@@ -29,7 +31,9 @@ const {
 // ==========================================
 router.post("/auth/register", register);
 router.post("/auth/login", login);
+router.post("/auth/logout", verifyToken, logout);
 router.get("/products", getProducts);
+router.get("/products/:id", getProductById);
 
 // ==========================================
 // 🔵 2. PHÂN HỆ USER
@@ -40,9 +44,13 @@ router.put("/users/profile", verifyToken, updateProfile);
 // 👉 ROUTE ĐỔI MẬT KHẨU MỚI THÊM:
 router.put("/users/change-password", verifyToken, changePassword);
 
-// Đặt hàng & Lịch sử
+// Đặt hàng, đánh giá & Lịch sử
 router.post("/orders", verifyToken, createOrder);
 router.get("/orders/me", verifyToken, getMyOrders);
 router.get("/orders/me/:id", verifyToken, getMyOrderDetails);
+router.put("/orders/:id/cancel", verifyToken, cancelOrder);
+
+// Đánh giá sản phẩm
+router.post("/products/reviews", verifyToken, submitReview);
 
 module.exports = router;

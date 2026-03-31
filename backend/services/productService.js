@@ -12,13 +12,38 @@ const productService = {
     return rows;
   },
 
-  // 2. Lấy chi tiết 1 sản phẩm
+  // 2. Lấy chi tiết 1 sản phẩm kèm theo Đánh giá (Reviews)
   getProductById: async (id) => {
-    const [rows] = await pool.query(
+    // Lấy thông tin cơ bản của sản phẩm
+    const [productRows] = await pool.query(
       "SELECT * FROM Products WHERE ProductID = ?",
       [id],
     );
-    return rows.length ? rows[0] : null;
+
+    if (productRows.length === 0) return null;
+    const product = productRows[0];
+
+    // Lấy danh sách đánh giá của sản phẩm này
+    const [reviews] = await pool.query(
+      `SELECT r.ReviewID, r.Rating, r.Comment, r.CreatedAt, u.Username, u.FullName
+       FROM Reviews r
+       JOIN Users u ON r.UserID = u.UserID
+       WHERE r.ProductID = ?
+       ORDER BY r.CreatedAt DESC`,
+      [id]
+    );
+
+    // Tính điểm trung bình và số lượt đánh giá
+    product.reviews = reviews;
+    product.reviewCount = reviews.length;
+    if (reviews.length > 0) {
+        const totalRating = reviews.reduce((sum, rv) => sum + rv.Rating, 0);
+        product.rating = totalRating / reviews.length;
+    } else {
+        product.rating = 0;
+    }
+
+    return product;
   },
 
   // 3. Trừ kho khi khách đặt hàng thành công
@@ -45,6 +70,16 @@ const productService = {
     toggleProductStatus: async (id, status) => {
         await pool.query("UPDATE Products SET Status = ? WHERE ProductID = ?", [status, id]);
         return true;
+    },
+
+    // 3. Đánh giá sản phẩm
+    submitReview: async (userId, productId, orderId, rating, comment) => {
+        // Có thể thêm bước kiểm tra xem khách đã mua hàng chưa thông qua OrderID
+        const [result] = await pool.query(
+            "INSERT INTO Reviews (UserID, ProductID, OrderID, Rating, Comment) VALUES (?, ?, ?, ?, ?)",
+            [userId, productId, orderId, rating, comment]
+        );
+        return result.insertId;
     }
 };
 

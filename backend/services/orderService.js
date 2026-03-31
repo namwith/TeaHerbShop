@@ -27,12 +27,14 @@ const orderService = {
 
     for (let item of cartItems) {
       const productId = item.ProductID || item.id;
+      const itemPrice = item.price || item.Price;
+      const itemQuantity = item.quantity || item.Quantity || 1;
       await pool.query(
         `INSERT INTO OrderDetails (OrderID, ProductID, Quantity, Price) VALUES (?, ?, ?, ?)`,
-        [orderId, productId, item.quantity, item.Price],
+        [orderId, productId, itemQuantity, itemPrice],
       );
       // Trừ kho
-      await productService.decreaseStock(productId, item.quantity);
+      await productService.decreaseStock(productId, itemQuantity);
     }
     return orderId;
   },
@@ -42,6 +44,19 @@ const orderService = {
       "SELECT * FROM Orders WHERE UserID = ? ORDER BY OrderDate DESC",
       [userId],
     );
+
+    // Lấy thêm items cho từng đơn hàng
+    for (let order of rows) {
+      const [items] = await pool.query(
+        `SELECT od.*, p.Name, p.ImageURL 
+         FROM OrderDetails od 
+         JOIN Products p ON od.ProductID = p.ProductID 
+         WHERE od.OrderID = ?`,
+        [order.OrderID],
+      );
+      order.items = items;
+    }
+
     return rows;
   },
 
@@ -58,6 +73,44 @@ const orderService = {
     );
     orders[0].items = items;
     return orders[0];
+  },
+
+  cancelOrder: async (userId, orderId) => {
+    // Chỉ cho phép hủy khi trạng thái là "Chờ xác nhận"
+    const [orders] = await pool.query(
+      "SELECT Status FROM Orders WHERE OrderID = ? AND UserID = ?",
+      [orderId, userId]
+    );
+
+    if (orders.length === 0) {
+      throw new Error("Không tìm thấy đơn hàng!");
+    }
+
+    if (orders[0].Status !== "Chờ xác nhận") {
+      throw new Error("Chỉ có thể hủy đơn hàng đang chờ xác nhận!");
+    }
+
+    // Lấy chi tiết đơn hàng để cộng lại Stock
+    const [items] = await pool.query(
+      "SELECT ProductID, Quantity FROM OrderDetails WHERE OrderID = ?",
+      [orderId]
+    );
+
+    // Cập nhật trạng thái thành Đã hủy
+    await pool.query(
+      "UPDATE Orders SET Status = 'Đã hủy' WHERE OrderID = ? AND UserID = ?",
+      [orderId, userId]
+    );
+
+    // Cộng lại Stock
+    for (let item of items) {
+      await pool.query(
+        "UPDATE Products SET Stock = Stock + ? WHERE ProductID = ?",
+        [item.Quantity, item.ProductID]
+      );
+    }
+
+    return true;
   },
 
   // === CÁC HÀM DÀNH CHO ADMIN ===

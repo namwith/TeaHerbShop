@@ -72,4 +72,15 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const logout = async (req, res) => {
+  // Vì JWT được quản lý trên frontend (localStorage), 
+  // API logout thực chất chỉ trả về phản hồi thành công.
+  // Frontend sẽ tự xóa token để hoàn tất quá trình.
+  try {
+    res.status(200).json({ success: true, message: "Đăng xuất thành công!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+};
+
+module.exports = { register, login, logout };
