@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
+// 1. IMPORT API
+import api from "../../api/axios.js";
 import { AuthContext } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 
-// Import các Sub-Components
 import StatsTab from "./StatsTab";
 import OrdersTab from "./OrdersTab";
 import ProductsTab from "./ProductsTab";
@@ -14,9 +14,8 @@ import InventoryTab from "./InventoryTab";
 const AdminDashboard = () => {
   const { token } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const themeColor = "#f97316"; // Màu cam chủ đạo
+  const themeColor = "#f97316";
 
-  // --- STATE DỮ LIỆU ---
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -35,7 +34,6 @@ const AdminDashboard = () => {
     image: null,
   });
 
-  // --- QUẢN LÝ GỌI API ---
   useEffect(() => {
     if (!token) return;
     if (activeTab === "dashboard") fetchStats();
@@ -44,11 +42,10 @@ const AdminDashboard = () => {
     if (activeTab === "users") fetchUsers();
   }, [activeTab, token]);
 
+  // 2. GỌI API TẤT CẢ ĐỀU NGẮN GỌN
   const fetchStats = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/admin/dashboard", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/admin/dashboard");
       if (res.data.success) setStats(res.data.data);
     } catch (err) {
       console.error("Lỗi fetch stats", err);
@@ -57,9 +54,7 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/admin/orders", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/admin/orders");
       if (res.data.success) setOrders(res.data.data);
     } catch (err) {
       console.error("Lỗi fetch orders", err);
@@ -68,9 +63,7 @@ const AdminDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/admin/products", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/admin/products");
       if (res.data.success) setProducts(res.data.data);
     } catch (err) {
       console.error("Lỗi fetch products", err);
@@ -79,49 +72,34 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/admin/users");
       if (res.data.success) setUsers(res.data.data);
     } catch (err) {
       console.error("Lỗi fetch users", err);
     }
   };
 
-  // --- HÀNH ĐỘNG (LOGIC) ---
   const updateOrderStatus = async (id, status) => {
     if (!window.confirm(`Chuyển đơn #${id} sang "${status}"?`)) return;
     try {
-      await axios.put(
-        `http://localhost:3000/api/admin/orders/${id}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await api.put(`/admin/orders/${id}/status`, { status });
+      toast.success("Cập nhật trạng thái thành công!");
       fetchOrders();
     } catch (err) {
-      alert("Lỗi cập nhật đơn hàng");
+      toast.error("Lỗi cập nhật đơn hàng");
     }
   };
 
-  // ✅ HÀM XÓA USER ĐÃ ĐƯỢC TÁCH RA ĐỘC LẬP
   const deleteUser = async (id) => {
-    if (
-      !window.confirm(
-        "❗ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản này? Thao tác này không thể hoàn tác!",
-      )
-    )
-      return;
+    if (!window.confirm("❗ CẢNH BÁO: Xóa VĨNH VIỄN tài khoản này?")) return;
     try {
-      const res = await axios.delete(
-        `http://localhost:3000/api/admin/users/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await api.delete(`/admin/users/${id}`);
       if (res.data.success) {
-        alert(res.data.message);
+        toast.success(res.data.message);
         fetchUsers();
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi xóa người dùng");
+      toast.error(err.response?.data?.message || "Lỗi khi xóa người dùng");
     }
   };
 
@@ -129,26 +107,22 @@ const AdminDashboard = () => {
     const newStatus = currentStatus === "active" ? "banned" : "active";
     if (!window.confirm(`Xác nhận thay đổi trạng thái người dùng?`)) return;
     try {
-      await axios.put(
-        `http://localhost:3000/api/admin/users/${id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await api.put(`/admin/users/${id}/status`, { status: newStatus });
+      toast.success("Cập nhật người dùng thành công!");
       fetchUsers();
     } catch (err) {
-      alert("Lỗi cập nhật người dùng");
+      toast.error("Lỗi cập nhật người dùng");
     }
   };
 
   const deleteProduct = async (id) => {
     if (!window.confirm("Xóa sản phẩm này?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/admin/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/admin/products/${id}`);
+      toast.success("Xóa sản phẩm thành công!");
       fetchProducts();
     } catch (err) {
-      alert("Lỗi xóa sản phẩm");
+      toast.error("Lỗi xóa sản phẩm");
     }
   };
 
@@ -186,22 +160,20 @@ const AdminDashboard = () => {
     });
 
     const method = productForm.id ? "put" : "post";
-    const url = `http://localhost:3000/api/admin/products${productForm.id ? `/${productForm.id}` : ""}`;
+    const url = `/admin/products${productForm.id ? `/${productForm.id}` : ""}`;
 
     try {
-      const res = await axios[method](url, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api[method](url, formData);
       if (res.data.success) {
         document.getElementById("btnCloseModal").click();
+        toast.success("Lưu sản phẩm thành công!");
         fetchProducts();
       }
     } catch (err) {
-      alert("Lỗi lưu sản phẩm");
+      toast.error("Lỗi lưu sản phẩm");
     }
   };
 
-  // --- GIAO DIỆN ---
   return (
     <div
       className="container-fluid px-4 py-4 mb-5"
@@ -214,7 +186,6 @@ const AdminDashboard = () => {
       </div>
 
       <div className="row">
-        {/* Sidebar Menu */}
         <div className="col-md-2 mb-4">
           <div
             className="list-group shadow-sm border-0 sticky-top"
@@ -243,7 +214,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="col-md-10">
           <div className="tab-content transition-fade">
             {activeTab === "dashboard" && (
@@ -264,8 +234,6 @@ const AdminDashboard = () => {
                 deleteProduct={deleteProduct}
               />
             )}
-
-            {/* ĐÃ TRUYỀN HÀM XÓA XUỐNG USERSTAB */}
             {activeTab === "users" && (
               <UsersTab
                 users={users}
@@ -274,7 +242,6 @@ const AdminDashboard = () => {
                 deleteUser={deleteUser}
               />
             )}
-
             {activeTab === "inventory" && (
               <InventoryTab
                 products={products}
@@ -284,17 +251,14 @@ const AdminDashboard = () => {
                     `Nhập số lượng kho mới cho sản phẩm (Hiện tại: ${currentStock}):`,
                     currentStock,
                   );
-
                   if (newStock !== null && !isNaN(newStock) && newStock >= 0) {
                     try {
-                      const res = await axios.put(
-                        `http://localhost:3000/api/admin/products/${id}/stock`,
-                        { stock: parseInt(newStock) },
-                        { headers: { Authorization: `Bearer ${token}` } },
-                      );
+                      const res = await api.put(`/admin/products/${id}/stock`, {
+                        stock: parseInt(newStock),
+                      });
                       if (res.data.success) {
                         toast.success("📦 Đã cập nhật số lượng kho!");
-                        fetchProducts(); // Tải lại danh sách để thanh Progress Bar chạy lại
+                        fetchProducts();
                       }
                     } catch (error) {
                       toast.error("Lỗi khi cập nhật kho!");
@@ -305,16 +269,14 @@ const AdminDashboard = () => {
                   const newStatus =
                     currentStatus === "hidden" ? "active" : "hidden";
                   try {
-                    const res = await axios.put(
-                      `http://localhost:3000/api/admin/products/${id}/status`,
-                      { status: newStatus },
-                      { headers: { Authorization: `Bearer ${token}` } },
-                    );
+                    const res = await api.put(`/admin/products/${id}/status`, {
+                      status: newStatus,
+                    });
                     if (res.data.success) {
                       toast.success(
                         "👁️ Cập nhật trạng thái hiển thị thành công!",
                       );
-                      fetchProducts(); // Tải lại danh sách
+                      fetchProducts();
                     }
                   } catch (error) {
                     toast.error("Lỗi khi cập nhật trạng thái!");
@@ -325,7 +287,6 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-
       <ProductModal
         productForm={productForm}
         setProductForm={setProductForm}

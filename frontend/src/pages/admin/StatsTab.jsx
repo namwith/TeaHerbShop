@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/axios.js";
 import {
   AreaChart,
   Area,
@@ -18,30 +18,27 @@ const StatsTab = ({ themeColor, token }) => {
     chartData: [],
     topProducts: [],
   });
-  const [filter, setFilter] = useState("week"); // Mặc định xem theo tuần
+  const [filter, setFilter] = useState("week");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStatsData = async () => {
-      setIsLoading(true);
+      setIsLoading(true); // Bật loading khi bắt đầu đổi bộ lọc
       try {
-        const res = await axios.get(
-          `http://localhost:3000/api/admin/dashboard?filter=${filter}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await api.get(`/admin/dashboard?filter=${filter}`);
         if (res.data.success) {
           setStats(res.data.data);
         }
-      } catch (err) {
-        console.error("Lỗi tải thống kê", err);
+      } catch (error) {
+        console.error("Lỗi khi tải thống kê:", error);
       } finally {
+        // 2. TẮT LOADING SAU KHI TẢI XONG DATA (Rất quan trọng)
         setIsLoading(false);
       }
     };
-    fetchStatsData();
-  }, [filter, token]); // Chạy lại mỗi khi đổi filter
+
+    if (token) fetchStatsData();
+  }, [filter, token]);
 
   // Format tooltip tiền tệ
   const CustomTooltip = ({ active, payload, label }) => {
@@ -62,6 +59,7 @@ const StatsTab = ({ themeColor, token }) => {
     return (
       <div className="text-center py-5">
         <div className="spinner-border text-primary"></div>
+        <p className="text-muted mt-3">Đang tải dữ liệu thống kê...</p>
       </div>
     );
 
