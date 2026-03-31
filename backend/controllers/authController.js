@@ -1,18 +1,18 @@
-const { sql } = require("../config/db");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { pool } = require("../config/db");
 
+// 1. ĐĂNG KÝ
 const register = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, fullName, phone, address } = req.body;
 
-    const pool = await sql.connect();
-    const checkUser = await pool
-      .request()
-      .input("Username", sql.VarChar, username)
-      .query("SELECT * FROM Users WHERE Username = @Username");
+    const [existingUsers] = await pool.query(
+      "SELECT * FROM Users WHERE Username = ?",
+      [username],
+    );
 
-    if (checkUser.recordset.length > 0) {
+    if (existingUsers.length > 0) {
       return res
         .status(400)
         .json({ success: false, message: "Tên đăng nhập đã tồn tại!" });
@@ -21,46 +21,59 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await pool
-      .request()
-      .input("Username", sql.VarChar, username)
-      .input("PasswordHash", sql.VarChar, hashedPassword).query(`
-                INSERT INTO Users (Username, PasswordHash, Role) 
-                VALUES (@Username, @PasswordHash, 'user')
-            `);
+    await pool.query(
+      `INSERT INTO Users (Username, Password, Role, FullName, Phone, Address) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        username,
+        hashedPassword,
+        "user",
+        fullName || null,
+        phone || null,
+        address || null,
+      ],
+    );
 
-    res
-      .status(201)
-      .json({ success: true, message: "Đăng ký thành công! Hãy đăng nhập." });
+    res.status(201).json({
+      success: true,
+      message: "🎉 Đăng ký thành công! Hãy đăng nhập.",
+    });
   } catch (error) {
     console.error("Lỗi đăng ký:", error);
-    res.status(500).json({ success: false, message: "Lỗi server khi đăng ký" });
+    res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };
 
+// 2. ĐĂNG NHẬP
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const pool = await sql.connect();
-    const result = await pool
-      .request()
-      .input("Username", sql.VarChar, username)
-      .query("SELECT * FROM Users WHERE Username = @Username");
+    const [users] = await pool.query("SELECT * FROM Users WHERE Username = ?", [
+      username,
+    ]);
 
-    const user = result.recordset[0];
-
-    if (!user) {
+    if (users.length === 0) {
       return res
         .status(400)
-        .json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu!" });
+        .json({ success: false, message: "Tài khoản không tồn tại!" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.PasswordHash);
-    if (!isMatch) {
+    const user = users[0];
+
+    if (user.Status === "banned") {
       return res
-        .status(400)
-        .json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu!" });
+        .status(403)
+        .json({ success: false, message: "Tài khoản của bạn đã bị khóa!" });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.Password);
+    if (!validPassword) {
+      if (password !== user.Password) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Sai mật khẩu!" });
+      }
     }
 
     const token = jwt.sign(
@@ -72,15 +85,41 @@ const login = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Đăng nhập thành công!",
-      token: token,
+      token,
       user: { username: user.Username, role: user.Role },
     });
   } catch (error) {
     console.error("Lỗi đăng nhập:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Lỗi server khi đăng nhập" });
+    res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 };
 
-module.exports = { register, login };
+const logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Token không tồn tại!",
+      });
+    }
+
+    const decoded = jwt.decode(token);
+
+    await pool.query(
+      "INSERT INTO TokenBlacklist (token, expiredAt) VALUES (?, ?)",
+      [token, new Date(decoded.exp * 1000)],
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Đăng xuất thành công!",
+    });
+  } catch (error) {
+    console.error("Lỗi logout:", error);
+    res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+};
+
+module.exports = { register, login, logout };

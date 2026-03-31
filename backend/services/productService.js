@@ -1,6 +1,5 @@
 const productRepo = require('../repositories/productRepository');
-const { ProductType } = require('../constants/enums');
-
+const { ProductType } = require('../utils/enums');
 class ProductService {
     // 1. Lấy danh sách sản phẩm
     async getAllProducts() {
